@@ -77,6 +77,7 @@ function normalize(r: Partial<DecodeResult>): DecodeResult {
     deadlines: Array.isArray(r.deadlines) ? r.deadlines : [],
     money: Array.isArray(r.money) ? r.money : [],
     action_steps: Array.isArray(r.action_steps) ? r.action_steps : [],
+    action_steps_translated: Array.isArray(r.action_steps_translated) ? r.action_steps_translated : [],
     key_terms: Array.isArray(r.key_terms) ? r.key_terms : [],
     scam_warning: {
       is_suspicious: Boolean(r.scam_warning?.is_suspicious),

@@ -26,6 +26,11 @@ const RENT: DecodeResult = {
     { step: "Pay the exact amount, and get a receipt", how: "Pay at 300 S. Glendora Ave, Suite 210 (Mon–Fri 9–5) and ask for a signed, dated receipt." },
     { step: "If you cannot pay, get free legal help now", how: "Call 211 or Stay Housed L.A. before the 3 days end. Do not ignore court papers." },
   ],
+  action_steps_translated: [
+    "ဒီနေ့ပဲ ၃ ရက်ကို ရေတွက်ပါ — စာရတဲ့နေ့ရဲ့ နောက်တစ်ရက်ကစပြီး စနေ၊ တနင်္ဂနွေနဲ့ ရုံးပိတ်ရက် (judicial holidays) တွေကို မရေတွက်ပါနဲ့။",
+    "ပမာဏအတိအကျ ပေးပြီး ပြေစာ (receipt) တောင်းပါ — 300 S. Glendora Ave, Suite 210 (တနင်္လာ–သောကြာ 9–5) မှာ ပေးပြီး လက်မှတ်ထိုး၊ ရက်စွဲပါတဲ့ ပြေစာ တောင်းပါ။",
+    "မပေးနိုင်ရင် အခမဲ့ ဥပဒေအကူအညီ (legal aid) ချက်ချင်းရှာပါ — ၃ ရက် မပြည့်ခင် 211 ဒါမှမဟုတ် Stay Housed L.A. ကို ဖုန်းဆက်ပါ။ တရားရုံးစာ (court papers) ရောက်လာရင် လျစ်လျူမရှုပါနဲ့။",
+  ],
   key_terms: [
     { term: "Pay Rent or Quit", meaning: "Pay what you owe, or leave the home." },
     { term: "Possession of the premises", meaning: "Living in and controlling the home." },
@@ -57,6 +62,11 @@ const SCAM: DecodeResult = {
     { step: "Do not click the link", how: "The site steals card numbers; real USPS links end in usps.com." },
     { step: "Check tracking yourself", how: "Type usps.com into your browser and enter a tracking number from a real order." },
     { step: "Report and delete", how: "Forward the text to 7726 (SPAM), then delete it." },
+  ],
+  action_steps_translated: [
+    "လင့်ခ်ကို မနှိပ်ပါနဲ့ — ဒီဆိုက်က ကတ်နံပါတ်တွေကို ခိုးပါတယ်။ တကယ့် USPS လင့်ခ်တွေက usps.com နဲ့ ဆုံးပါတယ်။",
+    "ကိုယ်တိုင် စစ်ကြည့်ပါ — browser မှာ usps.com ကို ကိုယ်တိုင်ရိုက်ပြီး တကယ်မှာထားတဲ့ tracking နံပါတ်ကို ထည့်ကြည့်ပါ။",
+    "တိုင်ကြားပြီး ဖျက်ပါ — စာကို 7726 (SPAM) ကို forward လုပ်ပြီး ဖျက်ပစ်ပါ။",
   ],
   key_terms: [
     { term: "Redelivery fee", meaning: "A fake charge. USPS redelivery is free." },

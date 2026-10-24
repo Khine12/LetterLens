@@ -54,6 +54,7 @@ export const OUTPUT_TEMPLATE = `Respond with ONLY a JSON object (no markdown fen
   "deadlines": [{"date": "as written", "what": "what must happen by then", "source_quote": "exact short phrase copied from the letter"}],
   "money": [{"amount": "as written", "what": "what it is for", "source_quote": "exact short phrase copied from the letter"}],
   "action_steps": [{"step": "short imperative step", "how": "one sentence on how to do it"}],
+  "action_steps_translated": ["each action step ('step — how') in the TARGET LANGUAGE, same order and count as action_steps; empty array if target is English"],
   "key_terms": [{"term": "confusing word or phrase from the letter", "meaning": "plain explanation"}],
   "scam_warning": {"is_suspicious": true/false, "reasons": ["specific red flags, empty if not suspicious"]},
   "reply_draft": "a short, polite reply or phone script the reader could use (in English, since the recipient reads English). Empty string if no reply makes sense, e.g. for a scam.",
@@ -64,7 +65,27 @@ Rules:
 - action_steps: 2-5 steps, ordered by what to do first.
 - key_terms: 2-5 items.
 - deadlines/money: empty arrays if none appear in the letter.
-- For a scam, action_steps must tell the reader NOT to pay or click, and how to verify safely.`;
+- For a scam, action_steps must tell the reader NOT to pay or click, and how to verify safely.
+- The letter itself may be written in English or in another language (including Burmese). Read it in whatever language it is in; English fields stay in English and translated fields use the TARGET LANGUAGE.`;
+
+/* ---------- Language-specific translation rules (part of Audience Persona) ---------- */
+const GENERAL_TRANSLATION_RULES = `Translation rules for the TARGET LANGUAGE:
+- Translate the meaning, not word-for-word. Write the way a kind, educated native speaker talks to a neighbor.
+- Keep money, dates, times, phone numbers, account numbers, and addresses EXACTLY as written in the letter (Western digits, same format).
+- After any legal, medical, or official term, add the original English term in parentheses, e.g. "<translated term> (eviction)", so the reader can match it to the letter and say it on the phone.
+- Keep names of people, companies, and government offices in English.`;
+
+const BURMESE_RULES = `Extra rules for Burmese (မြန်မာ):
+- Use standard Myanmar Unicode only. Never use Zawgyi encoding.
+- Use everyday spoken Burmese (ပြောဆိုသုံး), ending sentences with ပါတယ် / ပါမယ် / ပါ — NOT formal literary Burmese (စာဆိုသုံး: သည် / ၏ / ၍ / မည်).
+- Use Western digits for money and dates (write $1,850 and 11/03/2026, not ၁၈၅၀ or ၁၁/၀၃/၂၀၂၆). Small counts in normal speech may use Burmese digits (e.g. ၃ ရက်).
+- Prefer common words over Pali-derived or bureaucratic words; if a Burmese term would be unfamiliar, explain it in a few simple words instead.
+- Example of the right style: "အိမ်လခ $1,850 ပေးရပါမယ်။ အလုပ်ရက် ၃ ရက်အတွင်း မပေးရင် တရားရုံးကို တင်ပြီး အိမ်ကနေ နှင်ထုတ်နိုင်ပါတယ် (eviction)။"`;
+
+export function languageRules(language: string): string {
+  if (language.startsWith("English")) return "";
+  return language.startsWith("Burmese") ? `${GENERAL_TRANSLATION_RULES}\n${BURMESE_RULES}` : GENERAL_TRANSLATION_RULES;
+}
 
 /* ---------- 3. FEW-SHOT EXAMPLES ---------- */
 const EX1_INPUT = `TARGET LANGUAGE: Spanish (Español)
@@ -96,6 +117,11 @@ const EX1_OUTPUT = {
     { step: "Check the bill is yours", how: "Make sure the name, date, and visit match what really happened." },
     { step: "Decide how to pay", how: "If $450 is too much at once, call (626) 555-0144 before October 15 and ask for a payment plan." },
     { step: "Ask about Financial Assistance", how: "Hospitals must offer it to people with low income; ask for the application on the same call." },
+  ],
+  action_steps_translated: [
+    "Revise que la factura sea suya — confirme que el nombre, la fecha y la visita sean correctos.",
+    "Decida cómo pagar — si $450 es mucho de una vez, llame al (626) 555-0144 antes del 10/15/2026 y pida un plan de pagos (payment plan).",
+    "Pregunte por la Ayuda Financiera (Financial Assistance) — en la misma llamada, pida la solicitud.",
   ],
   key_terms: [
     { term: "Patient responsibility", meaning: "The part of the bill you must pay yourself." },
@@ -132,6 +158,7 @@ const EX2_OUTPUT = {
     { step: "Check with the real IRS", how: "Log in at irs.gov or call the number listed on irs.gov, not the number in the message." },
     { step: "Report it", how: "Report the scam at reportfraud.ftc.gov, then block the number." },
   ],
+  action_steps_translated: [],
   key_terms: [
     { term: "Back taxes", meaning: "Old taxes someone says you did not pay." },
     { term: "Warrant", meaning: "A court order. The IRS does not send arrest threats by text." },
@@ -151,10 +178,55 @@ const EX2_OUTPUT = {
   not_stated: ["Any real IRS notice number or letter code (real IRS letters have one, like CP14)", "Your name or tax year"],
 };
 
+const EX3_INPUT = `TARGET LANGUAGE: Burmese (မြန်မာ)
+READER: newcomer, still learning English
+READING LEVEL: ${READING_LEVELS.simple}
+
+LETTER:
+"""
+SAN GABRIEL VALLEY WATER CO. — 48-HOUR NOTICE OF DISCONNECTION
+Account #: 7730-112
+Past due balance: $96.40
+To avoid interruption of service, payment must be received by 11/03/2026 at 5:00 PM.
+Payment arrangements are available. Call Customer Service at 1-800-555-0187.
+"""`;
+
+const EX3_OUTPUT = {
+  letter_type: "Water shut-off warning (48-hour notice)",
+  sender: "San Gabriel Valley Water Co.",
+  urgency: "high",
+  urgency_reason: "Your water will be turned off if you don't pay or call by 11/03/2026 at 5:00 PM.",
+  summary_simple:
+    "Your water bill is late. You owe $96.40. Pay by 11/03/2026 at 5:00 PM or your water will be turned off. If you can't pay all of it, call and ask for a payment plan.",
+  summary_translated:
+    "ဒါက ရေဖိုး နောက်ကျနေလို့ ရေဖြတ်မယ်လို့ သတိပေးတဲ့စာ (disconnection notice) ပါ။ ရေဖိုး $96.40 ပေးရန် ကျန်နေပါတယ်။ 11/03/2026 ညနေ 5:00 PM မတိုင်ခင် မပေးရင် ရေဖြတ်ပါလိမ့်မယ်။ တစ်ခါတည်း အကုန်မပေးနိုင်ရင် ဖုန်းဆက်ပြီး အရစ်ကျပေးလို့ရလား (payment arrangement) မေးလို့ရပါတယ်။",
+  deadlines: [{ date: "11/03/2026 at 5:00 PM", what: "Payment must arrive to keep water on", source_quote: "payment must be received by 11/03/2026 at 5:00 PM" }],
+  money: [{ amount: "$96.40", what: "Late water bill", source_quote: "Past due balance: $96.40" }],
+  action_steps: [
+    { step: "Pay before the deadline", how: "Pay $96.40 online, by phone, or in person so it arrives before 11/03/2026 at 5:00 PM." },
+    { step: "If you can't pay it all, call today", how: "Call 1-800-555-0187 and ask for a payment arrangement before the deadline." },
+  ],
+  action_steps_translated: [
+    "နောက်ဆုံးရက်မတိုင်ခင် ပေးပါ — $96.40 ကို အွန်လိုင်း၊ ဖုန်း ဒါမှမဟုတ် ရုံးမှာ သွားပေးပြီး 11/03/2026 ညနေ 5:00 PM မတိုင်ခင် ရောက်အောင် လုပ်ပါ။",
+    "အကုန်မပေးနိုင်ရင် ဒီနေ့ပဲ ဖုန်းဆက်ပါ — 1-800-555-0187 ကို ဆက်ပြီး အရစ်ကျပေးချင်တယ် (payment arrangement) လို့ ပြောပါ။",
+  ],
+  key_terms: [
+    { term: "Disconnection", meaning: "Turning off your water service." },
+    { term: "Past due balance", meaning: "Money you owe that is already late." },
+    { term: "Payment arrangement", meaning: "A plan to pay a little at a time." },
+  ],
+  scam_warning: { is_suspicious: false, reasons: [] },
+  reply_draft:
+    "Hello, my account number is 7730-112. I got a 48-hour disconnection notice for $96.40. I can't pay the full amount today. Can I set up a payment arrangement so my water stays on? Thank you.",
+  questions_to_ask: ["Can I split the payment into two parts?", "Is there a fee to turn the water back on if it gets shut off?"],
+  not_stated: ["Whether there is a reconnection fee", "Whether any discount program for low income is available"],
+};
+
 /** Few-shot pairs, sent as real prior user/model turns (stronger than inline examples). */
 export const FEW_SHOT_EXAMPLES: { input: string; output: string }[] = [
   { input: EX1_INPUT, output: JSON.stringify(EX1_OUTPUT) },
   { input: EX2_INPUT, output: JSON.stringify(EX2_OUTPUT) },
+  { input: EX3_INPUT, output: JSON.stringify(EX3_OUTPUT) },
 ];
 
 export const DECODE_SYSTEM_PROMPT = `${SYSTEM_PERSONA}
@@ -179,10 +251,11 @@ export function buildDecodePrompt(opts: {
     ? `LETTER:\n"""\n${opts.letterText.trim()}\n"""`
     : `LETTER: (see the attached ${opts.hasFile ? "image/PDF" : "content"} — read all the text in it first)`;
 
+  const rules = languageRules(opts.language);
   return `TARGET LANGUAGE: ${opts.language}
 READER: newcomer or English learner who wants to know exactly what to do next
 READING LEVEL: ${READING_LEVELS[opts.readingLevel]}
-
+${rules ? `\n${rules}\n` : ""}
 ${body}`;
 }
 
@@ -203,7 +276,8 @@ ${opts.letterText || "(image or PDF — rely on the decoded result below)"}
 YOUR PREVIOUS DECODED RESULT:
 ${JSON.stringify(opts.result)}
 
-TARGET LANGUAGE: ${opts.language}`;
+TARGET LANGUAGE: ${opts.language}
+${languageRules(opts.language)}`;
 
   switch (opts.mode) {
     case "simpler":
@@ -212,7 +286,7 @@ TARGET LANGUAGE: ${opts.language}`;
         prompt: `${ctx}
 
 The reader said your explanation is still too hard. Rewrite it MUCH simpler: 3rd-grade level, sentences under 10 words, one idea per sentence, use everyday examples.
-Return ONLY JSON with these keys: {"summary_simple": "...", "summary_translated": "... (in the target language, empty if English)", "action_steps": [{"step": "...", "how": "..."}]}
+Return ONLY JSON with these keys: {"summary_simple": "...", "summary_translated": "... (in the target language, empty if English)", "action_steps": [{"step": "...", "how": "..."}], "action_steps_translated": ["... (target language, same order; empty if English)"]}
 Keep every fact the same. Do not add new facts.`,
       };
     case "formal_reply":
@@ -254,8 +328,8 @@ Answer in 2-5 short sentences, in plain English, and then (only if the target la
 /** Human-readable trace shown in the UI's "How the AI works" panel. */
 export const DECODE_PATTERNS = [
   { name: "Persona", where: "System prompt: a legal-aid caseworker who helps newcomers read official mail" },
-  { name: "Audience Persona", where: "User prompt: reader profile + chosen reading level + target language" },
-  { name: "Few-Shot", where: "2 worked examples (hospital bill, fake IRS scam) sent as prior chat turns" },
+  { name: "Audience Persona", where: "User prompt: reader profile + reading level + target language with language-specific style rules (e.g. spoken Burmese, Unicode, English term in brackets)" },
+  { name: "Few-Shot", where: "3 worked examples (hospital bill → Spanish, fake IRS scam, water shut-off → Burmese) sent as prior chat turns" },
   { name: "Template / Structured Output", where: "Exact JSON shape + JSON response mode, so the UI can render cards" },
   { name: "Fact Check List (grounding)", where: "Every date/amount needs a source_quote; unknowns go to 'not stated'" },
 ];

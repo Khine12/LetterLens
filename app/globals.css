@@ -165,6 +165,7 @@ select, input.text {
 .steps input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--accent); cursor: pointer; }
 .steps .s { font-weight: 700; }
 .steps .h { font-size: 14px; color: var(--ink-soft); }
+.steps .tr { font-size: 15px; line-height: 1.8; margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--line); }
 .steps li.done .s { text-decoration: line-through; opacity: 0.6; }
 
 .terms { display: grid; gap: 8px; margin: 0; }

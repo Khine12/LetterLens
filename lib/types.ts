@@ -32,6 +32,7 @@ export interface DecodeResult {
   deadlines: Deadline[];
   money: MoneyItem[];
   action_steps: ActionStep[];
+  action_steps_translated: string[];
   key_terms: KeyTerm[];
   scam_warning: { is_suspicious: boolean; reasons: string[] };
   reply_draft: string;

@@ -24,7 +24,7 @@ Misreading one letter can mean a missed eviction deadline, a bill sent to collec
 | 📷 Paste text **or** upload a photo/PDF | Gemini reads the image directly (multimodal), photos auto-resized in the browser |
 | ⏰ Urgency banner | Act now / Act soon / Low urgency, with a one-line reason |
 | 🚨 Scam detector | Red alert with the specific red flags |
-| 🗣️ Plain summary + translation | Simple English and the chosen language side by side, plus 🔊 Read aloud |
+| 🗣️ Plain summary + translation | Simple English and the chosen language side by side (summary **and** every next step), plus 🔊 Read aloud |
 | 📅 Deadlines & 💵 Money | Each item shows the **exact quote from the letter** it came from |
 | ✅ Next-steps checklist | 2–5 ordered steps the reader can tick off |
 | 📖 Words explained | Glossary of the confusing terms in that letter |
@@ -60,10 +60,12 @@ All prompts live in [`lib/prompts.ts`](lib/prompts.ts). The app uses **six** pat
 The system prompt makes the model *"a patient, warm caseworker who has spent 15 years at a community legal-aid and immigrant resource center."* This sets tone (calm, plain words), priorities (protective about scams), and limits (not a lawyer — refer to 211 / legal aid for eviction or court). **Effect:** consistent, kind, non-jargon answers instead of a generic summarizer voice.
 
 ### 2. Audience Persona
-Each request tells the model who the reader is and how to write for them: `READER: newcomer or English learner`, `READING LEVEL: about a 5th-grade reading level…`, `TARGET LANGUAGE: Burmese`. The user controls level and language from the UI. **Effect:** the same letter is explained differently for different readers.
+Each request tells the model who the reader is and how to write for them: `READER: newcomer or English learner`, `READING LEVEL: about a 5th-grade reading level…`, `TARGET LANGUAGE: Burmese`. The user controls level and language from the UI.
+
+It also adds **language-specific translation rules**: translate meaning not words, keep money/dates/phone numbers exactly as written, and put the original English term in brackets after legal words, e.g. နှင်ထုတ်ခြင်း (eviction), so the reader can match it to the letter and use it on the phone. For **Burmese** there are extra rules: Myanmar Unicode only (no Zawgyi), everyday spoken style (ပါတယ် / ပါမယ်) instead of formal literary style (သည် / ၏), and Western digits for money and dates. **Effect:** the same letter is explained differently for different readers, and translations sound natural instead of machine-literal.
 
 ### 3. Few-Shot
-Two complete worked examples — a hospital bill (Spanish) and a fake "IRS" gift-card scam — are sent as **real prior user/model chat turns** before the real letter. **Effect:** the model copies the exact JSON shape, the tone, the step style, and learns to flip into "don't pay, verify safely" mode for scams.
+Three complete worked examples — a hospital bill (→ Spanish), a fake "IRS" gift-card scam (→ English), and a water shut-off notice (→ Burmese, written in natural spoken Burmese) — are sent as **real prior user/model chat turns** before the real letter. **Effect:** the model copies the exact JSON shape, the tone, the step style, the Burmese writing style, and learns to flip into "don't pay, verify safely" mode for scams.
 
 ### 4. Template (structured output)
 The system prompt gives an exact JSON template (urgency, deadlines with `source_quote`, action_steps, key_terms, scam_warning, reply_draft, not_stated…) and the API call uses Gemini's JSON response mode. **Effect:** the output can be rendered as reliable UI cards instead of a wall of text; the server also normalizes missing fields so the UI never breaks.
@@ -78,6 +80,7 @@ After decoding, the user can refine: **Explain even simpler** (3rd-grade rewrite
 
 - **Next.js 15 (App Router) + React 19 + TypeScript**, plain CSS (light/dark mode, mobile-first)
 - **Google Gemini API** (`gemini-2.5-flash` by default, set `GEMINI_MODEL` to change) via REST — no SDK
+- **OpenAI fallback:** if `GEMINI_API_KEY` is empty and `OPENAI_API_KEY` is set, the same prompts run on OpenAI (`OPENAI_MODEL`, default `gpt-5-mini`)
 - API key stays on the server (`/api/decode`, `/api/refine`); never sent to the browser
 - **Demo mode:** without a key the app still runs with canned results for two samples, so the UI can always be shown
 

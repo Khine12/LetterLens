@@ -139,7 +139,7 @@ export default function Home() {
         {trace?.demoMode ? (
           <span className="pill warn">Demo mode · no API key</span>
         ) : (
-          <span className="pill">Powered by Gemini</span>
+          <span className="pill">Powered by {trace?.model ?? "AI"}</span>
         )}
       </header>
 
@@ -345,6 +345,9 @@ export default function Home() {
                       <div>
                         <div className="s">{i + 1}. {s.step}</div>
                         <div className="h">{s.how}</div>
+                        {!isEnglish && result.action_steps_translated?.[i] && (
+                          <div className="tr" lang={langCode(language)}>{result.action_steps_translated[i]}</div>
+                        )}
                       </div>
                     </li>
                   ))}
