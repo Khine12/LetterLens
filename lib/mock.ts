@@ -1,0 +1,93 @@
+/**
+ * Demo mode: used ONLY when GEMINI_API_KEY is missing, so the UI can still be
+ * clicked through. The real app always calls Gemini when a key is set.
+ */
+import type { DecodeResult } from "./types";
+
+const RENT: DecodeResult = {
+  letter_type: "3-Day Notice to Pay Rent or Quit",
+  sender: "Sunrise Property Management (for the owner)",
+  urgency: "high",
+  urgency_reason: "You have only 3 business days to pay, or the landlord can start an eviction case in court.",
+  summary_simple:
+    "Your landlord says you did not pay October rent. You owe $1,850. You must pay within 3 business days, or move out. If you do neither, they can take you to court to evict you.",
+  summary_translated:
+    "သင့်အိမ်ရှင်က အောက်တိုဘာလ အိမ်လခ မပေးရသေးဘူးလို့ ပြောပါတယ်။ $1,850 ပေးရပါမယ်။ အလုပ်ရက် ၃ ရက်အတွင်း ပေးရမယ်၊ မဟုတ်ရင် အိမ်ကနေ ထွက်ရပါမယ်။ နှစ်ခုလုံး မလုပ်ရင် တရားရုံးကို တင်ပြီး နှင်ထုတ်နိုင်ပါတယ်။",
+  deadlines: [
+    {
+      date: "3 days after you got the notice (not counting weekends/holidays)",
+      what: "Pay $1,850 or move out",
+      source_quote: "WITHIN THREE (3) DAYS, excluding Saturdays, Sundays and judicial holidays",
+    },
+  ],
+  money: [{ amount: "$1,850.00", what: "Rent for October 1–31, 2026", source_quote: "in the amount of $1,850.00" }],
+  action_steps: [
+    { step: "Count your 3 days today", how: "Start the day after you got the notice and skip Saturday, Sunday and court holidays." },
+    { step: "Pay the exact amount, and get a receipt", how: "Pay at 300 S. Glendora Ave, Suite 210 (Mon–Fri 9–5) and ask for a signed, dated receipt." },
+    { step: "If you cannot pay, get free legal help now", how: "Call 211 or Stay Housed L.A. before the 3 days end. Do not ignore court papers." },
+  ],
+  key_terms: [
+    { term: "Pay Rent or Quit", meaning: "Pay what you owe, or leave the home." },
+    { term: "Possession of the premises", meaning: "Living in and controlling the home." },
+    { term: "Forfeiture of the rental agreement", meaning: "The landlord ends your lease." },
+  ],
+  scam_warning: { is_suspicious: false, reasons: [] },
+  reply_draft:
+    "Hello, my name is Mya Thida Aung in Unit 6 at 1420 E. Garvey Ave. I received the 3-day notice dated October 20 for $1,850. I will bring the full payment on [day]. Could you please give me a signed receipt? Thank you.",
+  questions_to_ask: [
+    "Can I pay by check or money order instead of in person?",
+    "Is the $1,850 rent only, or does it include late fees?",
+    "Will you give me a signed receipt?",
+  ],
+  not_stated: ["Whether late fees are included in $1,850", "Whether online payment is accepted"],
+};
+
+const SCAM: DecodeResult = {
+  letter_type: "Fake USPS delivery text (scam)",
+  sender: "Pretends to be USPS (very likely fake)",
+  urgency: "low",
+  urgency_reason: "This is very likely a phishing scam. Just don't click the link.",
+  summary_simple:
+    "This text says USPS could not deliver a package and wants $1.99. The link is not a real USPS website. USPS does not text you asking for fees. Do not click or pay.",
+  summary_translated:
+    "ဒီစာက USPS က ပါဆယ် ပို့မရလို့ $1.99 ပေးပါလို့ ပြောပါတယ်။ လင့်ခ်က USPS ရဲ့ တကယ့်ဝက်ဘ်ဆိုက် မဟုတ်ပါ။ မနှိပ်ပါနဲ့၊ ငွေ မပေးပါနဲ့။",
+  deadlines: [],
+  money: [{ amount: "$1.99", what: "Fake 'redelivery fee'", source_quote: "A redelivery fee of $1.99 is required" }],
+  action_steps: [
+    { step: "Do not click the link", how: "The site steals card numbers; real USPS links end in usps.com." },
+    { step: "Check tracking yourself", how: "Type usps.com into your browser and enter a tracking number from a real order." },
+    { step: "Report and delete", how: "Forward the text to 7726 (SPAM), then delete it." },
+  ],
+  key_terms: [
+    { term: "Redelivery fee", meaning: "A fake charge. USPS redelivery is free." },
+    { term: "Phishing", meaning: "A trick message that tries to steal your money or personal information." },
+  ],
+  scam_warning: {
+    is_suspicious: true,
+    reasons: [
+      "Link is not usps.com",
+      "Asks for a small fee to get your card number",
+      "12-hour time pressure",
+      "You did not request text alerts",
+    ],
+  },
+  reply_draft: "",
+  questions_to_ask: ["Am I actually expecting a USPS package?"],
+  not_stated: ["Your name or the sender of the package"],
+};
+
+export function mockDecode(text: string): DecodeResult {
+  const t = text.toLowerCase();
+  if (t.includes("usps") || t.includes("redelivery")) return SCAM;
+  if (t.includes("rent") || t.includes("quit")) return RENT;
+  return {
+    ...RENT,
+    letter_type: "Demo mode (no API key)",
+    sender: "—",
+    urgency: "medium",
+    urgency_reason: "Add GEMINI_API_KEY to .env.local to decode real letters.",
+    summary_simple:
+      "LetterLens is running in demo mode because no Gemini API key is set. Try the 'Rent notice' or 'Suspicious text' samples, or add a key to decode any letter.",
+    summary_translated: "",
+  };
+}
