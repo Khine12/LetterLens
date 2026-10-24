@@ -4,6 +4,8 @@
 
 **Before class:** open the deployed site in a fresh tab, set language to **Burmese**, have a photo of a printed sample letter on your phone (or a real envelope with personal info covered), and have the README open in another tab as backup.
 
+**Timing check (do this the day before and again 10 min before):** decode the rent sample once. If it takes longer than ~30 s, set `GEMINI_MODEL` to a faster model and redeploy. Doing one decode just before you present also confirms the key works. The header pill should say **Powered by &lt;model&gt;**, not **Demo mode**.
+
 | # | Time | Slide / screen | What to say |
 |---|---|---|---|
 | 1 | 0:00–0:40 | **Problem** | "I came here from Myanmar and taught myself English. The hardest English wasn't in class — it was in the mailbox. Rent notices, medical bills, school forms. Miss one deadline and you can lose your home or your money. Translation apps give you words, not *what to do*." |
@@ -15,22 +17,25 @@
 ### Live demo script
 1. **Rent notice** (click the 🏠 sample, language = Burmese, "Very simply") → **Decode**.
    - Point at the red **Act now** banner → "it found the 3-business-day deadline hidden in the legal text."
-   - Point at a deadline's **"From the letter:"** quote → "every date and dollar amount is quoted from the letter, so it can't make one up."
+   - Point at a deadline's **"From the letter:"** quote and the green **✓ Found word-for-word in the letter** → "every date and dollar amount must be quoted from the letter, and my server double-checks the quote is really there. If the AI made one up, it would show a warning instead."
    - Show the **Burmese summary** → click **🔊 Read aloud**.
    - Click **🧒 Explain even simpler** → summary gets shorter.
    - Under the reply, click **📞 Turn into a phone script**.
    - Ask in chat: *"What happens if I pay one day late?"*
+   - Open **🧠 How the AI works** → scroll to **Self-Refine: before → after** and compare the two Burmese translations ("the second AI call made it sound like a person").
 2. **Scam** (click 🚨 Suspicious text, switch language to Spanish) → **Decode** → red **This looks like a scam** box with reasons; steps say *don't click*.
 3. **Photo** (the wow moment): switch to **📷 Photo / PDF**, upload/take a photo of a printed letter (the school notice or EOB sample works well) → it reads the image directly.
 
-**If Wi-Fi or the API fails:** the app still runs in demo mode (rent + scam samples work offline from the API), so keep going and explain.
+**While it's loading** (it can take 20–40 s): keep talking. Explain that it's reading the letter and fact-checking, then a second AI call polishes the translation.
+
+**If Wi-Fi or the API fails:** demo mode only turns on when no API key is set, so have a backup ready: (1) a screen recording of a full run (your short video works), and (2) a local copy started without a key (`npm run dev` with `GEMINI_API_KEY` blank) where the rent + scam samples work without the API. Switch to one, keep going, and explain.
 
 ### Prompt engineering talking points (point at the 🧠 panel)
 1. **Persona** — "The system prompt makes Gemini a legal-aid caseworker with 15 years helping newcomers: calm, plain words, protective about scams, and it knows it's not a lawyer."
 2. **Audience Persona** — "The reader's language and reading level change how it writes."
-3. **Few-Shot** — "Two worked examples — a hospital bill and a fake IRS scam — go in as earlier chat turns, so it learns the exact format and how to handle scams."
+3. **Few-Shot** — "Three worked examples — a hospital bill in Spanish, a fake IRS scam, and a water shut-off notice in Burmese — go in as earlier chat turns, so it learns the exact format, the Burmese style, and how to handle scams."
 4. **Template** — "It must return a strict JSON shape, which is why I can render these cards."
-5. **Fact Check List** — "Every deadline and amount needs a quote from the letter; anything missing goes into 'the letter doesn't say' instead of a guess."
+5. **Fact Check List** — "Every deadline and amount needs a quote from the letter; anything missing goes into 'the letter doesn't say' instead of a guess. And I don't just trust it: the server checks each quote against the letter."
 6. **Iterative Refinement** — "Simpler / formal / phone script / chat all feed the previous answer back with a new instruction."
 7. **Self-Refine (native editor)** — "Machine translation sounds robotic, so a second AI call acts as a native Burmese editor and rewrites only the translation to sound human, with the facts locked."
 

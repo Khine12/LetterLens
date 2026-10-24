@@ -4,12 +4,15 @@ export interface Deadline {
   date: string;
   what: string;
   source_quote: string;
+  /** set by lib/verify.ts: true if source_quote was found in the pasted letter text */
+  verified?: boolean;
 }
 
 export interface MoneyItem {
   amount: string;
   what: string;
   source_quote: string;
+  verified?: boolean;
 }
 
 export interface ActionStep {
@@ -20,6 +23,18 @@ export interface ActionStep {
 export interface KeyTerm {
   term: string;
   meaning: string;
+}
+
+/** Everything else the reader sees, in their language. Arrays follow the same order as the English ones. */
+export interface TranslatedDetails {
+  letter_type?: string;
+  urgency_reason?: string;
+  deadlines_what?: string[];
+  money_what?: string[];
+  key_terms_meaning?: string[];
+  scam_reasons?: string[];
+  questions_to_ask?: string[];
+  not_stated?: string[];
 }
 
 export interface DecodeResult {
@@ -38,6 +53,7 @@ export interface DecodeResult {
   reply_draft: string;
   questions_to_ask: string[];
   not_stated: string[];
+  translated: TranslatedDetails;
 }
 
 export interface PromptTrace {
@@ -46,6 +62,8 @@ export interface PromptTrace {
   userPrompt: string;
   model: string;
   demoMode: boolean;
+  /** Self-Refine pass: the first translation and the native editor's rewrite */
+  polish?: { before: string; after: string };
 }
 
 export interface ChatTurn {

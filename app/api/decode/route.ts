@@ -3,6 +3,7 @@ import { generate, hasKey, MODEL, parseJson, type Content } from "@/lib/gemini";
 import { mockDecode } from "@/lib/mock";
 import { polishTranslation } from "@/lib/polish";
 import { friendlyError } from "@/lib/errors";
+import { verifyQuotes } from "@/lib/verify";
 import {
   buildDecodePrompt,
   DECODE_PATTERNS,
@@ -17,9 +18,12 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MAX_TEXT = 12000;
-const MAX_FILE_B64 = 5_500_000; // ~4MB file
+// Vercel stops functions at maxDuration; running locally there's no limit, so a slow model gets more time.
+const BUDGET_MS = process.env.VERCEL ? maxDuration * 1000 : 120_000;
+const MAX_FILE_B64 = 4_200_000; // ~3MB file; Vercel rejects request bodies over 4.5MB
 
 export async function POST(req: Request) {
+  const started = Date.now();
   try {
     const body = await req.json();
     const letterText: string = (body.text || "").slice(0, MAX_TEXT);
@@ -31,7 +35,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Paste a letter or upload a photo/PDF first." }, { status: 400 });
     }
     if (file && file.data.length > MAX_FILE_B64) {
-      return NextResponse.json({ error: "File is too large (max ~4 MB)." }, { status: 413 });
+      return NextResponse.json({ error: "File is too large (max ~3 MB)." }, { status: 413 });
     }
 
     const userPrompt = buildDecodePrompt({ letterText, hasFile: !!file, language, readingLevel });
@@ -44,7 +48,7 @@ export async function POST(req: Request) {
     };
 
     if (!hasKey()) {
-      return NextResponse.json({ result: mockDecode(letterText), trace });
+      return NextResponse.json({ result: verifyQuotes(mockDecode(letterText), letterText), trace });
     }
 
     // Few-shot examples are sent as real prior turns, then the actual letter.
@@ -58,12 +62,17 @@ export async function POST(req: Request) {
     parts.push({ text: userPrompt });
     contents.push({ role: "user", parts });
 
-    const raw = await generate({ system: DECODE_SYSTEM_PROMPT, contents, json: true, temperature: 0.2 });
-    let result = normalize(parseJson<Partial<DecodeResult>>(raw));
+    const raw = await generate({ system: DECODE_SYSTEM_PROMPT, contents, json: true, temperature: 0.2, timeoutMs: BUDGET_MS - 10_000 });
+    let result = verifyQuotes(normalize(parseJson<Partial<DecodeResult>>(raw)), letterText);
 
-    // Pattern 7: native-speaker editor pass on the translated fields (Self-Refine)
-    const polished = await polishTranslation(result, language);
-    if (polished) result = { ...result, ...polished };
+    // Pattern 7: native-speaker editor pass on the translated fields (Self-Refine).
+    // Only uses the time left in the budget; if there isn't enough, the first translation is kept.
+    const timeLeft = BUDGET_MS - (Date.now() - started) - 5_000;
+    const polished = await polishTranslation(result, language, Math.min(25_000, timeLeft));
+    if (polished) {
+      trace.polish = { before: result.summary_translated, after: polished.summary_translated };
+      result = { ...result, ...polished };
+    }
     trace.patterns = [...trace.patterns, ...(polished ? [POLISH_PATTERN] : [])];
 
     return NextResponse.json({ result, trace });
@@ -71,6 +80,11 @@ export async function POST(req: Request) {
     console.error(err);
     return NextResponse.json({ error: friendlyError(err) }, { status: 500 });
   }
+}
+
+/** Lets the UI show "Demo mode" or the model name before the first decode. */
+export async function GET() {
+  return NextResponse.json({ model: MODEL, demoMode: !hasKey() });
 }
 
 /** Fill any missing fields so the UI never crashes on a partial model response. */
@@ -95,5 +109,6 @@ function normalize(r: Partial<DecodeResult>): DecodeResult {
     reply_draft: r.reply_draft || "",
     questions_to_ask: Array.isArray(r.questions_to_ask) ? r.questions_to_ask : [],
     not_stated: Array.isArray(r.not_stated) ? r.not_stated : [],
+    translated: r.translated && typeof r.translated === "object" ? r.translated : {},
   };
 }

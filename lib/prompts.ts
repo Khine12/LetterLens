@@ -60,12 +60,23 @@ export const OUTPUT_TEMPLATE = `Respond with ONLY a JSON object (no markdown fen
   "scam_warning": {"is_suspicious": true/false, "reasons": ["specific red flags, empty if not suspicious"]},
   "reply_draft": "a short, polite reply or phone script the reader could use (in English, since the recipient reads English). Empty string if no reply makes sense, e.g. for a scam.",
   "questions_to_ask": ["questions the reader should ask the sender or a helper"],
-  "not_stated": ["important things the reader might expect that the letter does NOT say"]
+  "not_stated": ["important things the reader might expect that the letter does NOT say"],
+  "translated": {
+    "letter_type": "letter_type in the TARGET LANGUAGE",
+    "urgency_reason": "urgency_reason in the TARGET LANGUAGE",
+    "deadlines_what": ["each deadline's 'what' in the TARGET LANGUAGE, same order and count as deadlines"],
+    "money_what": ["each money item's 'what' in the TARGET LANGUAGE, same order and count as money"],
+    "key_terms_meaning": ["each key term's meaning in the TARGET LANGUAGE, same order and count as key_terms"],
+    "scam_reasons": ["each scam reason in the TARGET LANGUAGE, same order and count"],
+    "questions_to_ask": ["each question in the TARGET LANGUAGE, same order and count"],
+    "not_stated": ["each item in the TARGET LANGUAGE, same order and count"]
+  }
 }
 Rules:
 - action_steps: 2-5 steps, ordered by what to do first.
 - key_terms: 2-5 items.
 - deadlines/money: empty arrays if none appear in the letter.
+- translated: the reader may not read English well, so everything they need to understand goes here in the TARGET LANGUAGE. Use {} if the target is English. Keep dates, amounts, and quotes from the letter exactly as written; questions_to_ask stays in English in its own field so the reader can ask it out loud.
 - For a scam, action_steps must tell the reader NOT to pay or click, and how to verify safely.
 - The letter itself may be written in English or in another language (including Burmese). Read it in whatever language it is in; English fields stay in English and translated fields use the TARGET LANGUAGE.`;
 
@@ -137,6 +148,19 @@ const EX1_OUTPUT = {
     "Hello, my name is R. Lopez, account number 448812. I received a statement for $450 due October 15. I can't pay it all at once. Can I set up a monthly payment plan, and can you send me the Financial Assistance application? Thank you.",
   questions_to_ask: ["Can I get an itemized bill?", "Do I qualify for Financial Assistance?", "Is there interest on the payment plan?"],
   not_stated: ["Whether a late fee is charged after 10/15/2026", "The monthly amount for a payment plan"],
+  translated: {
+    letter_type: "Factura del hospital (estado de cuenta del paciente)",
+    urgency_reason: "Usted debe dinero con fecha límite, pero puede pedir un plan de pagos o ayuda.",
+    deadlines_what: ["Pagar los $450 o hacer un plan de pagos"],
+    money_what: ["Lo que usted debe después del seguro"],
+    key_terms_meaning: [
+      "La parte de la factura que usted tiene que pagar.",
+      "Un programa del hospital que baja o quita la factura si sus ingresos son bajos.",
+    ],
+    scam_reasons: [],
+    questions_to_ask: ["¿Me pueden dar una factura detallada?", "¿Califico para la Ayuda Financiera?", "¿El plan de pagos cobra intereses?"],
+    not_stated: ["Si cobran un cargo por pago tardío después del 10/15/2026", "Cuánto sería el pago mensual del plan"],
+  },
 };
 
 const EX2_INPUT = `TARGET LANGUAGE: English
@@ -181,6 +205,7 @@ const EX2_OUTPUT = {
   reply_draft: "",
   questions_to_ask: ["Do I have any real balance on my irs.gov account?"],
   not_stated: ["Any real IRS notice number or letter code (real IRS letters have one, like CP14)", "Your name or tax year"],
+  translated: {},
 };
 
 const EX3_INPUT = `TARGET LANGUAGE: Burmese (မြန်မာ)
@@ -225,6 +250,20 @@ const EX3_OUTPUT = {
     "Hello, my account number is 7730-112. I got a 48-hour disconnection notice for $96.40. I can't pay the full amount today. Can I set up a payment arrangement so my water stays on? Thank you.",
   questions_to_ask: ["Can I split the payment into two parts?", "Is there a fee to turn the water back on if it gets shut off?"],
   not_stated: ["Whether there is a reconnection fee", "Whether any discount program for low income is available"],
+  translated: {
+    letter_type: "ရေဖြတ်မယ်လို့ သတိပေးတဲ့စာ (48-hour notice)",
+    urgency_reason: "11/03/2026 ညနေ 5:00 PM မတိုင်ခင် ငွေမပေး၊ ဖုန်းမဆက်ရင် ရေဖြတ်ခံရပါမယ်။",
+    deadlines_what: ["ရေမဖြတ်ခံရအောင် ဒီအချိန်မတိုင်ခင် ငွေရောက်ရပါမယ်"],
+    money_what: ["နောက်ကျနေတဲ့ ရေဖိုး"],
+    key_terms_meaning: [
+      "ရေကို ပိတ်လိုက်တာ (ရေဖြတ်တာ) ပါ။",
+      "ပေးရမယ့်ရက် ကျော်သွားပြီဖြစ်တဲ့ ပိုက်ဆံပါ။",
+      "တစ်ခါတည်း မပေးဘဲ နည်းနည်းချင်း ခွဲပေးလို့ရတဲ့ အစီအစဉ် (အရစ်ကျ) ပါ။",
+    ],
+    scam_reasons: [],
+    questions_to_ask: ["ငွေကို နှစ်ခါ ခွဲပေးလို့ ရမလား။", "ရေဖြတ်ခံရရင် ပြန်ဖွင့်ဖို့ ပိုက်ဆံ ထပ်ပေးရမလား။"],
+    not_stated: ["ရေပြန်ဖွင့်ရင် ပိုက်ဆံ ထပ်ပေးရမလား ဆိုတာ မပါပါဘူး။", "ဝင်ငွေနည်းသူတွေအတွက် လျှော့ဈေး အစီအစဉ် ရှိမရှိ မပါပါဘူး။"],
+  },
 };
 
 /** Few-shot pairs, sent as real prior user/model turns (stronger than inline examples). */
@@ -333,10 +372,10 @@ Answer in 2-5 short sentences, in plain English, and then (only if the target la
 /** Human-readable trace shown in the UI's "How the AI works" panel. */
 export const DECODE_PATTERNS = [
   { name: "Persona", where: "System prompt: a legal-aid caseworker who helps newcomers read official mail" },
-  { name: "Audience Persona", where: "User prompt: reader profile + reading level + target language with language-specific style rules (e.g. spoken Burmese, Unicode, English term in brackets)" },
+  { name: "Audience Persona", where: "User prompt: reader profile + reading level + target language with language-specific style rules (e.g. spoken Burmese, Unicode, English term in brackets). Everything the reader needs is also returned in their language and shown first" },
   { name: "Few-Shot", where: "3 worked examples (hospital bill → Spanish, fake IRS scam, water shut-off → Burmese) sent as prior chat turns" },
   { name: "Template / Structured Output", where: "Exact JSON shape + JSON response mode, so the UI can render cards" },
-  { name: "Fact Check List (grounding)", where: "Every date/amount needs a source_quote; unknowns go to 'not stated'" },
+  { name: "Fact Check List (grounding)", where: "Every date/amount needs a source_quote; unknowns go to 'not stated'. For pasted text, the server then checks each quote really appears in the letter and flags any that don't" },
 ];
 
 export const POLISH_PATTERN = {

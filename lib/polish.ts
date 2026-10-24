@@ -15,8 +15,12 @@ Your only job: make translated text sound like a warm, real person wrote it for 
 
 type Translated = Pick<DecodeResult, "summary_translated" | "action_steps_translated">;
 
-export async function polishTranslation(result: DecodeResult, language: string): Promise<Translated | null> {
-  if (language.startsWith("English") || !result.summary_translated) return null;
+export async function polishTranslation(
+  result: DecodeResult,
+  language: string,
+  timeoutMs = 25_000
+): Promise<Translated | null> {
+  if (language.startsWith("English") || !result.summary_translated || timeoutMs < 8_000) return null;
 
   const prompt = `TARGET LANGUAGE: ${language}
 
@@ -44,6 +48,7 @@ action_steps_translated must have exactly ${result.action_steps.length} items, i
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       json: true,
       temperature: 0.6,
+      timeoutMs, // optional step: if it's slow, keep the first translation
     });
     const out = parseJson<Partial<Translated>>(raw);
     const steps = Array.isArray(out.action_steps_translated) ? out.action_steps_translated : [];

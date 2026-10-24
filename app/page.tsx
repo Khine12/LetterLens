@@ -1,17 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { LANGUAGES } from "@/lib/prompts";
+import { useEffect, useRef, useState } from "react";
+import { FEW_SHOT_EXAMPLES, LANGUAGES } from "@/lib/prompts";
 import { SAMPLES } from "@/lib/samples";
+import { label, localLabel } from "@/lib/ui-text";
 import type { ChatTurn, DecodeResult, PromptTrace, RefineMode } from "@/lib/types";
 
 type FileData = { data: string; mimeType: string; preview?: string; name: string };
 
-const URGENCY = {
-  high: { icon: "⏰", label: "Act now" },
-  medium: { icon: "📌", label: "Act soon" },
-  low: { icon: "✅", label: "Low urgency" },
-} as const;
+const URGENCY_ICON = { high: "⏰", medium: "📌", low: "✅" } as const;
 
 export default function Home() {
   const [tab, setTab] = useState<"text" | "photo">("text");
@@ -29,12 +26,24 @@ export default function Home() {
   const [chat, setChat] = useState<ChatTurn[]>([]);
   const [question, setQuestion] = useState("");
   const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<{ model: string; demoMode: boolean } | null>(null);
+  const [slow, setSlow] = useState(false);
+  const [shownLang, setShownLang] = useState("English");
   const fileInput = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch("/api/decode")
+      .then((r) => r.json())
+      .then(setStatus)
+      .catch(() => {});
+  }, []);
 
   async function decode() {
     setError("");
     setLoading(true);
+    setSlow(false);
+    const slowTimer = setTimeout(() => setSlow(true), 15_000);
     setResult(null);
     setChat([]);
     setDone({});
@@ -52,11 +61,13 @@ export default function Home() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Request failed");
       setResult(json.result);
+      setShownLang(language);
       setTrace(json.trace);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
+      clearTimeout(slowTimer);
       setLoading(false);
     }
   }
@@ -90,7 +101,7 @@ export default function Home() {
     setError("");
     try {
       if (f.type === "application/pdf") {
-        if (f.size > 4 * 1024 * 1024) throw new Error("PDF is too large (max 4 MB).");
+        if (f.size > 3 * 1024 * 1024) throw new Error("PDF is too large (max 3 MB). Try a photo of the page instead.");
         const data = await toBase64(f);
         setFile({ data, mimeType: f.type, name: f.name });
       } else if (f.type.startsWith("image/")) {
@@ -104,10 +115,14 @@ export default function Home() {
     }
   }
 
-  function speak(t: string) {
+  function speak(t: string, lang = "en") {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    // The voice list can still be loading, so only pick a voice if one is ready; u.lang does the rest.
+    const voice = window.speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith(lang));
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(t);
+    u.lang = lang;
+    if (voice) u.voice = voice;
     u.rate = 0.9;
     window.speechSynthesis.speak(u);
   }
@@ -124,11 +139,15 @@ export default function Home() {
   }
 
   const canDecode = !loading && (tab === "text" ? text.trim().length > 0 : !!file);
-  const isEnglish = language === "English";
+  // Results use the language they were decoded in, even if the dropdown changes afterwards.
+  const isEnglish = shownLang === "English";
+  const bi = { lang: langCode(shownLang), dir: shownLang.startsWith("Arabic") ? ("rtl" as const) : undefined };
+  const tr = result?.translated ?? {};
+  const shownStatus = trace ?? status;
 
   return (
     <main className="wrap">
-      <header className="header">
+      <header className="header no-print">
         <div className="brand">
           <div className="logo" aria-hidden>L</div>
           <div>
@@ -136,16 +155,16 @@ export default function Home() {
             <div className="tag">Official mail, explained like a friend would</div>
           </div>
         </div>
-        {trace?.demoMode ? (
+        {shownStatus?.demoMode ? (
           <span className="pill warn">Demo mode · no API key</span>
         ) : (
-          <span className="pill">Powered by {trace?.model ?? "AI"}</span>
+          <span className="pill">Powered by {shownStatus?.model ?? "AI"}</span>
         )}
       </header>
 
-      <section className="hero">
+      <section className="hero no-print">
         <h2>
-          Got a letter you <mark>don&apos;t understand</mark>?
+          Got a letter you don&apos;t understand?
         </h2>
         <p>
           Paste it or snap a photo. LetterLens tells you what it means, how urgent it is, what to do next, and whether
@@ -155,7 +174,7 @@ export default function Home() {
 
       <div className="grid">
         {/* ---------- INPUT ---------- */}
-        <section className="card sticky" aria-label="Your letter">
+        <section className="card sticky no-print" aria-label="Your letter">
           <h3>1 · Your letter</h3>
           <div className="tabs" role="tablist">
             <button role="tab" aria-selected={tab === "text"} className={tab === "text" ? "on" : ""} onClick={() => setTab("text")}>
@@ -255,6 +274,7 @@ export default function Home() {
           {loading && (
             <div className="card">
               <h3>Reading carefully…</h3>
+              {slow && <p className="none">Still working: it&apos;s checking every date and amount, then polishing the translation. Long letters can take up to a minute.</p>}
               <div className="skeleton" style={{ width: "70%" }} />
               <div className="skeleton" />
               <div className="skeleton" style={{ width: "85%" }} />
@@ -265,35 +285,52 @@ export default function Home() {
           {result && (
             <>
               <div className={`banner ${result.urgency}`}>
-                <div className="icon" aria-hidden>{URGENCY[result.urgency].icon}</div>
+                <div className="icon" aria-hidden>{URGENCY_ICON[result.urgency]}</div>
                 <div>
-                  <div className="kicker">{URGENCY[result.urgency].label}</div>
-                  <div className="title">{result.letter_type}</div>
-                  <div className="sub">From: {result.sender}</div>
-                  {result.urgency_reason && <div className="sub" style={{ marginTop: 4 }}>{result.urgency_reason}</div>}
+                  <div className="kicker">{label(result.urgency, shownLang)}</div>
+                  <div className="title"><Bi local={tr.letter_type} en={result.letter_type} {...bi} /></div>
+                  <div className="sub">{localLabel("from", shownLang)}: {result.sender}</div>
+                  {result.urgency_reason && (
+                    <div className="sub" style={{ marginTop: 4 }}>
+                      <Bi local={tr.urgency_reason} en={result.urgency_reason} {...bi} />
+                    </div>
+                  )}
                 </div>
               </div>
 
               {result.scam_warning.is_suspicious && (
                 <div className="scam" role="alert">
-                  <strong>🚨 This looks like a scam</strong>
+                  <strong>🚨 {label("scam", shownLang)}</strong>
                   <ul>
-                    {result.scam_warning.reasons.map((r, i) => <li key={i}>{r}</li>)}
+                    {result.scam_warning.reasons.map((r, i) => (
+                      <li key={i}><Bi local={tr.scam_reasons?.[i]} en={r} {...bi} /></li>
+                    ))}
                   </ul>
                 </div>
               )}
 
               <div className="card summary">
-                <h3>2 · What it means</h3>
-                <p>{result.summary_simple}</p>
-                {!isEnglish && result.summary_translated && (
-                  <div className="translated" lang={langCode(language)}>
-                    <div className="lang-label">{language}</div>
-                    {result.summary_translated}
-                  </div>
+                <h3>2 · {label("means", shownLang)}</h3>
+                {!isEnglish && result.summary_translated ? (
+                  <>
+                    <p className="local" lang={bi.lang} dir={bi.dir}>{result.summary_translated}</p>
+                    <div className="translated english">
+                      <div className="lang-label">{localLabel("inEnglish", shownLang)}</div>
+                      {result.summary_simple}
+                    </div>
+                  </>
+                ) : (
+                  <p>{result.summary_simple}</p>
                 )}
                 <div className="actions" style={{ marginTop: 12 }}>
-                  <button className="btn ghost" onClick={() => speak(result.summary_simple)}>🔊 Read aloud</button>
+                  {!isEnglish && result.summary_translated && (
+                    <button className="btn ghost" onClick={() => speak(result.summary_translated, bi.lang)}>
+                      🔊 Read in {shownLang.split(" ")[0]}
+                    </button>
+                  )}
+                  <button className="btn ghost" onClick={() => speak(result.summary_simple)}>
+                    🔊 Read aloud{isEnglish ? "" : " in English"}
+                  </button>
                   <button className="btn ghost" onClick={() => refine("simpler")} disabled={!!refining}>
                     {refining === "simpler" ? <span className="spinner" /> : "🧒"} Explain even simpler
                   </button>
@@ -302,37 +339,37 @@ export default function Home() {
 
               <div className="two">
                 <div className="card">
-                  <h3>📅 Deadlines</h3>
+                  <h3>📅 {label("deadlines", shownLang)}</h3>
                   {result.deadlines.length ? (
                     result.deadlines.map((d, i) => (
                       <div className="fact" key={i}>
                         <span className="val">{d.date}</span>
-                        <span className="what">{d.what}</span>
-                        {d.source_quote && <span className="quote">“{d.source_quote}”</span>}
+                        <span className="what"><Bi local={tr.deadlines_what?.[i]} en={d.what} {...bi} /></span>
+                        <Quote text={d.source_quote} verified={d.verified} language={shownLang} />
                       </div>
                     ))
                   ) : (
-                    <p className="none">No deadline in this letter.</p>
+                    <p className="none">{localLabel("noDeadline", shownLang)}</p>
                   )}
                 </div>
                 <div className="card">
-                  <h3>💵 Money</h3>
+                  <h3>💵 {label("money", shownLang)}</h3>
                   {result.money.length ? (
                     result.money.map((m, i) => (
                       <div className="fact" key={i}>
                         <span className="val">{m.amount}</span>
-                        <span className="what">{m.what}</span>
-                        {m.source_quote && <span className="quote">“{m.source_quote}”</span>}
+                        <span className="what"><Bi local={tr.money_what?.[i]} en={m.what} {...bi} /></span>
+                        <Quote text={m.source_quote} verified={m.verified} language={shownLang} />
                       </div>
                     ))
                   ) : (
-                    <p className="none">No amounts mentioned.</p>
+                    <p className="none">{localLabel("noMoney", shownLang)}</p>
                   )}
                 </div>
               </div>
 
               <div className="card">
-                <h3>3 · What to do next</h3>
+                <h3>3 · {label("steps", shownLang)}</h3>
                 <ol className="steps">
                   {result.action_steps.map((s, i) => (
                     <li key={i} className={done[i] ? "done" : ""}>
@@ -342,13 +379,17 @@ export default function Home() {
                         checked={!!done[i]}
                         onChange={() => setDone((d) => ({ ...d, [i]: !d[i] }))}
                       />
-                      <div>
-                        <div className="s">{i + 1}. {s.step}</div>
-                        <div className="h">{s.how}</div>
-                        {!isEnglish && result.action_steps_translated?.[i] && (
-                          <div className="tr" lang={langCode(language)}>{result.action_steps_translated[i]}</div>
-                        )}
-                      </div>
+                      {!isEnglish && result.action_steps_translated?.[i] ? (
+                        <div>
+                          <div className="s local" lang={bi.lang} dir={bi.dir}>{i + 1}. {result.action_steps_translated[i]}</div>
+                          <div className="h">{s.step} — {s.how}</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="s">{i + 1}. {s.step}</div>
+                          <div className="h">{s.how}</div>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ol>
@@ -356,26 +397,30 @@ export default function Home() {
 
               <div className="two">
                 <div className="card">
-                  <h3>📖 Words explained</h3>
+                  <h3>📖 {label("words", shownLang)}</h3>
                   <dl className="terms">
                     {result.key_terms.map((k, i) => (
                       <div key={i}>
-                        <dt><span>{k.term}</span></dt>
-                        <dd>{k.meaning}</dd>
+                        <dt>{k.term}</dt>
+                        <dd><Bi local={tr.key_terms_meaning?.[i]} en={k.meaning} {...bi} /></dd>
                       </div>
                     ))}
                   </dl>
                 </div>
                 <div className="card">
-                  <h3>❓ Good questions to ask</h3>
+                  <h3>❓ {label("questions", shownLang)}</h3>
                   <ul className="plain">
-                    {result.questions_to_ask.map((q, i) => <li key={i}>{q}</li>)}
+                    {result.questions_to_ask.map((q, i) => (
+                      <li key={i}><Bi local={tr.questions_to_ask?.[i]} en={q} {...bi} /></li>
+                    ))}
                   </ul>
                   {result.not_stated.length > 0 && (
                     <>
-                      <h3 style={{ marginTop: 14 }}>🕳️ The letter doesn&apos;t say</h3>
+                      <h3 style={{ marginTop: 14 }}>🕳️ {label("notStated", shownLang)}</h3>
                       <ul className="plain">
-                        {result.not_stated.map((q, i) => <li key={i}>{q}</li>)}
+                        {result.not_stated.map((q, i) => (
+                          <li key={i}><Bi local={tr.not_stated?.[i]} en={q} {...bi} /></li>
+                        ))}
                       </ul>
                     </>
                   )}
@@ -384,7 +429,7 @@ export default function Home() {
 
               {result.reply_draft && (
                 <div className="card reply">
-                  <h3>4 · What you can say back</h3>
+                  <h3>4 · {label("reply", shownLang)}</h3>
                   <pre>{result.reply_draft}</pre>
                   <div className="actions">
                     <button className="btn ghost" onClick={copyReply}>{copied ? "✓ Copied" : "📋 Copy"}</button>
@@ -398,8 +443,8 @@ export default function Home() {
                 </div>
               )}
 
-              <div className="card">
-                <h3>💬 Ask about this letter</h3>
+              <div className="card no-print">
+                <h3>💬 {label("ask", shownLang)}</h3>
                 {chat.length > 0 && (
                   <div className="chat">
                     {chat.map((t, i) => (
@@ -429,8 +474,12 @@ export default function Home() {
                 </form>
               </div>
 
+              <div className="actions no-print">
+                <button className="btn ghost" onClick={() => window.print()}>🖨️ Print / save as PDF (to bring to a helper)</button>
+              </div>
+
               {trace && (
-                <div className="card">
+                <div className="card no-print">
                   <details className="inspector">
                     <summary>
                       <span>🧠 How the AI works (prompt engineering)</span>
@@ -445,9 +494,18 @@ export default function Home() {
                         <span>&ldquo;Explain simpler&rdquo;, &ldquo;formal letter&rdquo;, &ldquo;phone script&rdquo; and chat send the previous answer back with a new instruction</span>
                       </div>
                     </div>
+                    {trace.polish && (
+                      <>
+                        <div className="lang-label">Self-Refine: first translation → after the native-speaker editor</div>
+                        <div className="before-after" lang={bi.lang} dir={bi.dir}>
+                          <div className="prompt-box"><b>Before</b>{"\n"}{trace.polish.before}</div>
+                          <div className="prompt-box"><b>After</b>{"\n"}{trace.polish.after}</div>
+                        </div>
+                      </>
+                    )}
                     <div className="lang-label">System prompt</div>
                     <div className="prompt-box">{trace.systemPrompt}</div>
-                    <div className="lang-label">User prompt (after 2 few-shot examples)</div>
+                    <div className="lang-label">User prompt (sent after {FEW_SHOT_EXAMPLES.length} few-shot examples)</div>
                     <div className="prompt-box">{trace.userPrompt}</div>
                   </details>
                 </div>
@@ -461,6 +519,28 @@ export default function Home() {
         LetterLens is an AI helper, not legal or medical advice. For eviction, court, or debt issues, call 211 for free local help.
       </footer>
     </main>
+  );
+}
+
+/** The reader's language first, with the English underneath in smaller text (or just English). */
+function Bi({ local, en, lang, dir }: { local?: string; en: string; lang: string; dir?: "rtl" }) {
+  if (!local) return <>{en}</>;
+  return (
+    <>
+      <span lang={lang} dir={dir}>{local}</span>
+      <span className="en">{en}</span>
+    </>
+  );
+}
+
+function Quote({ text, verified, language }: { text?: string; verified?: boolean; language: string }) {
+  if (!text) return null;
+  return (
+    <>
+      <span className="quote">“{text}”</span>
+      {verified === true && <span className="check ok">✓ {localLabel("found", language)}</span>}
+      {verified === false && <span className="check warn">⚠️ {localLabel("notFound", language)}</span>}
+    </>
   );
 }
 

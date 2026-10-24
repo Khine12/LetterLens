@@ -9,7 +9,9 @@ export function friendlyError(err: unknown): string {
     return "The AI model name isn't available. Set GEMINI_MODEL to a current model (e.g. gemini-3.8-flash).";
   if (/\b(500|502|503|504)\b|UNAVAILABLE|overloaded/i.test(msg))
     return "The AI service is having a hiccup. Please try again in a few seconds.";
+  if (/timeout|timed out|aborted/i.test(msg) || (err instanceof Error && err.name === "TimeoutError"))
+    return "The AI took too long to answer. Please try again (shorter letters are faster).";
   if (/parse|JSON/i.test(msg)) return "The AI gave an unexpected answer. Please try again.";
-  if (/too large|413/i.test(msg)) return "That file is too large. Try a smaller photo or PDF (max ~4 MB).";
+  if (/too large|413/i.test(msg)) return "That file is too large. Try a smaller photo or PDF (max ~3 MB).";
   return "Something went wrong reading your letter. Please try again.";
 }

@@ -6,7 +6,6 @@
   --line: #e4dccb;
   --accent: #2f5bd3;
   --accent-ink: #ffffff;
-  --highlight: #ffe36e;
   --red: #c8372d;
   --red-bg: #fde8e5;
   --amber: #b26a00;
@@ -28,7 +27,6 @@
     --line: #2d3240;
     --accent: #7b9cff;
     --accent-ink: #0d1020;
-    --highlight: #6b5a12;
     --red: #ff8a7f;
     --red-bg: #3a1d1b;
     --amber: #ffc56b;
@@ -71,7 +69,6 @@ a { color: var(--accent); }
 
 .hero { padding: 18px 0 22px; }
 .hero h2 { font-family: var(--serif); font-size: clamp(28px, 4.5vw, 44px); line-height: 1.1; margin: 0 0 10px; letter-spacing: -0.02em; }
-.hero h2 mark { background: linear-gradient(transparent 55%, var(--highlight) 55%); color: inherit; padding: 0 2px; }
 .hero p { margin: 0; color: var(--ink-soft); max-width: 640px; }
 
 /* Layout */
@@ -147,6 +144,10 @@ select, input.text {
 
 .summary p { margin: 0; font-size: 17px; }
 .translated { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 17px; line-height: 1.8; }
+.translated.english { font-size: 15px; line-height: 1.55; color: var(--ink-soft); }
+.summary p.local { font-size: 18px; line-height: 1.9; }
+/* English shown under the reader's language */
+.en { display: block; font-size: 13px; line-height: 1.45; color: var(--ink-soft); font-weight: 400; font-family: var(--sans); margin-top: 2px; }
 .lang-label { font-size: 12px; color: var(--ink-soft); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
 
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -159,18 +160,20 @@ select, input.text {
 .quote { font-size: 12px; color: var(--ink-soft); font-style: italic; }
 .quote::before { content: "From the letter: "; font-style: normal; font-weight: 500; }
 .none { color: var(--ink-soft); font-size: 14px; margin: 0; }
+.check { font-size: 12px; font-weight: 500; }
+.check.ok { color: var(--green); }
+.check.warn { color: var(--amber); }
 
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .steps li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; padding: 10px; border-radius: 10px; background: var(--paper); }
 .steps input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--accent); cursor: pointer; }
 .steps .s { font-weight: 700; }
 .steps .h { font-size: 14px; color: var(--ink-soft); }
-.steps .tr { font-size: 15px; line-height: 1.8; margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--line); }
+.steps .s.local { font-weight: 500; font-size: 16px; line-height: 1.8; }
 .steps li.done .s { text-decoration: line-through; opacity: 0.6; }
 
 .terms { display: grid; gap: 8px; margin: 0; }
 .terms dt { font-weight: 700; }
-.terms dt span { background: linear-gradient(transparent 55%, var(--highlight) 55%); }
 .terms dd { margin: 0 0 4px; font-size: 14px; color: var(--ink-soft); }
 
 .reply pre {
@@ -199,6 +202,9 @@ details.inspector summary::-webkit-details-marker { display: none; }
   white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--paper);
   border-radius: 10px; padding: 12px; max-height: 260px; overflow: auto; margin: 6px 0 12px;
 }
+.before-after { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.before-after .prompt-box { font-family: var(--sans); font-size: 14px; line-height: 1.8; }
+@media (max-width: 640px) { .before-after { grid-template-columns: 1fr; } }
 
 .spinner { width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -208,3 +214,11 @@ details.inspector summary::-webkit-details-marker { display: none; }
 
 .footer { text-align: center; color: var(--ink-soft); font-size: 12px; margin-top: 36px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* Print: just the decoded letter, so it can be handed to a family member or caseworker */
+@media print {
+  .no-print, .actions, .steps input { display: none !important; }
+  body { background: #fff; color: #000; }
+  .grid { display: block; }
+  .card, .banner, .scam { box-shadow: none; break-inside: avoid; }
+}

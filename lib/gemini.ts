@@ -19,25 +19,38 @@ export function hasKey() {
   return PROVIDER !== "none";
 }
 
+/** Retry once on rate-limit / overload errors, so one hiccup doesn't break a live demo. */
+async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  const res = await fetch(url, init);
+  if (![429, 500, 503].includes(res.status)) return res;
+  await new Promise((r) => setTimeout(r, 2000));
+  return fetch(url, init);
+}
+
 type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
 export type Content = { role: "user" | "model"; parts: Part[] };
 
-export async function generate(opts: {
+type GenerateOpts = {
   system: string;
   contents: Content[];
   json?: boolean;
   temperature?: number;
-}): Promise<string> {
+  /** give up after this long so the UI never hangs (default 50s, under the 60s route limit) */
+  timeoutMs?: number;
+};
+
+export async function generate(opts: GenerateOpts): Promise<string> {
   if (PROVIDER === "gemini") return generateGemini(opts);
   if (PROVIDER === "openai") return generateOpenAI(opts);
   throw new Error("No API key set (GEMINI_API_KEY or OPENAI_API_KEY)");
 }
 
-async function generateGemini(opts: { system: string; contents: Content[]; json?: boolean; temperature?: number }) {
-  const res = await fetch(
+async function generateGemini(opts: GenerateOpts) {
+  const res = await fetchWithRetry(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
     {
       method: "POST",
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 50_000),
       headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: opts.system }] },
@@ -45,6 +58,8 @@ async function generateGemini(opts: { system: string; contents: Content[]; json?
         generationConfig: {
           temperature: opts.temperature ?? 0.3,
           ...(opts.json ? { responseMimeType: "application/json" } : {}),
+          // Gemini 3 models think a lot by default, which makes calls slow. Reading a letter doesn't need deep thinking.
+          ...(GEMINI_MODEL.startsWith("gemini-3") ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
         },
       }),
     }
@@ -61,7 +76,7 @@ async function generateGemini(opts: { system: string; contents: Content[]; json?
   return text;
 }
 
-async function generateOpenAI(opts: { system: string; contents: Content[]; json?: boolean }) {
+async function generateOpenAI(opts: GenerateOpts) {
   // Convert Gemini-style turns to OpenAI chat messages (same prompts, same few-shot turns).
   const messages = [
     { role: "system", content: opts.system },
@@ -77,8 +92,9 @@ async function generateOpenAI(opts: { system: string; contents: Content[]; json?
     })),
   ];
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetchWithRetry("https://api.openai.com/v1/chat/completions", {
     method: "POST",
+    signal: AbortSignal.timeout(opts.timeoutMs ?? 50_000),
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     body: JSON.stringify({
       model: OPENAI_MODEL,

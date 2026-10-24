@@ -45,6 +45,24 @@ const RENT: DecodeResult = {
     "Will you give me a signed receipt?",
   ],
   not_stated: ["Whether late fees are included in $1,850", "Whether online payment is accepted"],
+  translated: {
+    letter_type: "အိမ်လခ ပေးဖို့ ဒါမှမဟုတ် အိမ်ကထွက်ဖို့ ၃ ရက် သတိပေးစာ (3-Day Notice)",
+    urgency_reason: "အလုပ်ရက် ၃ ရက်ပဲ အချိန်ရပါတယ်။ မပေးရင် အိမ်ရှင်က နှင်ထုတ်ဖို့ (eviction) တရားရုံးမှာ စတင်တရားစွဲနိုင်ပါတယ်။",
+    deadlines_what: ["$1,850 ပေးရမယ်၊ မပေးနိုင်ရင် အိမ်ကထွက်ရမယ်"],
+    money_what: ["အောက်တိုဘာ 1–31, 2026 အတွက် အိမ်လခ"],
+    key_terms_meaning: [
+      "ကြွေးကျန်ကို ပေးပါ၊ မပေးရင် အိမ်ကနေ ထွက်ပါ လို့ ဆိုလိုတာပါ။",
+      "အိမ်မှာ နေထိုင်ခွင့်နဲ့ အိမ်ကို ထိန်းထားခွင့်ပါ။",
+      "အိမ်ရှင်က အိမ်ငှားစာချုပ်ကို ဖျက်လိုက်တာပါ။",
+    ],
+    scam_reasons: [],
+    questions_to_ask: [
+      "ကိုယ်တိုင် မလာဘဲ check ဒါမှမဟုတ် money order နဲ့ ပေးလို့ရမလား။",
+      "$1,850 က အိမ်လခသက်သက်လား၊ နောက်ကျကြေး ပါသေးလား။",
+      "လက်မှတ်ထိုးထားတဲ့ ပြေစာ (receipt) ပေးမှာလား။",
+    ],
+    not_stated: ["$1,850 ထဲမှာ နောက်ကျကြေး ပါမပါ မပြောထားပါဘူး။", "အွန်လိုင်းကနေ ပေးလို့ရမရ မပြောထားပါဘူး။"],
+  },
 };
 
 const SCAM: DecodeResult = {
@@ -84,6 +102,24 @@ const SCAM: DecodeResult = {
   reply_draft: "",
   questions_to_ask: ["Am I actually expecting a USPS package?"],
   not_stated: ["Your name or the sender of the package"],
+  translated: {
+    letter_type: "USPS လို ဟန်ဆောင်ထားတဲ့ လိမ်လည်စာ (scam)",
+    urgency_reason: "လိမ်လည်စာ ဖြစ်နိုင်ခြေ အရမ်းများပါတယ်။ လင့်ခ်ကို မနှိပ်ရင် ရပါပြီ။",
+    deadlines_what: [],
+    money_what: ["အတုအယောင် ပြန်ပို့ခ (redelivery fee)"],
+    key_terms_meaning: [
+      "အတုအယောင် ကြေးပါ။ USPS က ပြန်ပို့တာအတွက် ပိုက်ဆံမယူပါဘူး။",
+      "ပိုက်ဆံ ဒါမှမဟုတ် ကိုယ်ရေးအချက်အလက် ခိုးဖို့ လှည့်စားတဲ့ မက်ဆေ့ခ်ျပါ။",
+    ],
+    scam_reasons: [
+      "လင့်ခ်က usps.com မဟုတ်ပါဘူး",
+      "ကတ်နံပါတ် ရဖို့ ပိုက်ဆံ နည်းနည်းလေး တောင်းထားပါတယ်",
+      "၁၂ နာရီအတွင်း လုပ်ခိုင်းပြီး အလောတကြီး ဖိအားပေးထားပါတယ်",
+      "စာတို အသိပေးချက် ကိုယ်တိုင် တောင်းထားတာ မဟုတ်ပါဘူး",
+    ],
+    questions_to_ask: ["USPS ပါဆယ် တစ်ခုခု တကယ် စောင့်နေတာ ရှိလား။"],
+    not_stated: ["လက်ခံသူ နာမည်နဲ့ ပါဆယ်ပို့သူ နာမည် မပါပါဘူး။"],
+  },
 };
 
 export function mockDecode(text: string): DecodeResult {
@@ -99,5 +135,6 @@ export function mockDecode(text: string): DecodeResult {
     summary_simple:
       "LetterLens is running in demo mode because no Gemini API key is set. Try the 'Rent notice' or 'Suspicious text' samples, or add a key to decode any letter.",
     summary_translated: "",
+    translated: {},
   };
 }
