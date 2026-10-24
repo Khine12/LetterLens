@@ -217,8 +217,16 @@ details.inspector summary::-webkit-details-marker { display: none; }
 
 /* Print: just the decoded letter, so it can be handed to a family member or caseworker */
 @media print {
+  /* always print with the light palette, even when the screen is in dark mode */
+  :root {
+    --paper: #ffffff; --card: #ffffff; --ink: #000000; --ink-soft: #444444; --line: #cccccc;
+    --red: #b3261e; --red-bg: #fde8e5; --amber: #8a5300; --amber-bg: #fff1d6; --green: #1f6b43; --green-bg: #e2f4ea;
+  }
   .no-print, .actions, .steps input { display: none !important; }
   body { background: #fff; color: #000; }
   .grid { display: block; }
   .card, .banner, .scam { box-shadow: none; break-inside: avoid; }
+  .banner, .scam { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* the checkbox column is hidden, so let the step text use the full width */
+  .steps li { grid-template-columns: 1fr; }
 }
