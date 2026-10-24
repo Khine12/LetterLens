@@ -4,7 +4,7 @@
  * Both are called over REST, no SDK needed.
  */
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5-mini";
 
 export const PROVIDER: "gemini" | "openai" | "none" = process.env.GEMINI_API_KEY

@@ -9,6 +9,7 @@
  *  5. Fact Check List / grounding  — every date & amount must carry a source_quote,
  *                                    unknowns go to "not_stated" instead of guessed
  *  6. Iterative Refinement    — buildRefinePrompt (Simpler / Formal / Friendly / Ask)
+ *  7. Self-Refine / Reflection — native-speaker editor pass in lib/polish.ts
  */
 
 import type { ChatTurn, DecodeResult, RefineMode } from "./types";
@@ -70,7 +71,9 @@ Rules:
 
 /* ---------- Language-specific translation rules (part of Audience Persona) ---------- */
 const GENERAL_TRANSLATION_RULES = `Translation rules for the TARGET LANGUAGE:
-- Translate the meaning, not word-for-word. Write the way a kind, educated native speaker talks to a neighbor.
+- Do NOT translate the English sentence by sentence. Read the English, understand it, then write the translated fields fresh, as if you were a native speaker explaining the letter to a friend over the phone.
+- It must not sound like machine translation. Avoid: English word order, long noun chains, passive voice ("it is required that…"), overly formal or textbook words, repeating "you" in every sentence, and stiff openings like "This letter informs you that…".
+- Use natural connecting words, short sentences, and a warm, reassuring tone. It is fine to combine or reorder ideas if it reads more naturally.
 - Keep money, dates, times, phone numbers, account numbers, and addresses EXACTLY as written in the letter (Western digits, same format).
 - After any legal, medical, or official term, add the original English term in parentheses, e.g. "<translated term> (eviction)", so the reader can match it to the letter and say it on the phone.
 - Keep names of people, companies, and government offices in English.`;
@@ -80,6 +83,8 @@ const BURMESE_RULES = `Extra rules for Burmese (မြန်မာ):
 - Use everyday spoken Burmese (ပြောဆိုသုံး), ending sentences with ပါတယ် / ပါမယ် / ပါ — NOT formal literary Burmese (စာဆိုသုံး: သည် / ၏ / ၍ / မည်).
 - Use Western digits for money and dates (write $1,850 and 11/03/2026, not ၁၈၅၀ or ၁၁/၀၃/၂၀၂၆). Small counts in normal speech may use Burmese digits (e.g. ၃ ရက်).
 - Prefer common words over Pali-derived or bureaucratic words; if a Burmese term would be unfamiliar, explain it in a few simple words instead.
+- Robot giveaways to avoid in Burmese: starting sentences with "သင်" / "သင့်" again and again (natural Burmese usually drops the "you"); literary connectors like ကျေးဇူးပြု၍, ရန်, ၍, သဖြင့် (use ပါ, ဖို့, ပြီး, လို့ instead); stacking ခြင်း / မှု nouns; ending every sentence the same way.
+- Sound human: vary sentence endings (ပါတယ် / ပါမယ် / ရပါမယ် / နိုင်ပါတယ်), and a gentle နော် or ပါ is fine when giving advice (e.g. "ပြေစာ တောင်းထားပါနော်။").
 - Example of the right style: "အိမ်လခ $1,850 ပေးရပါမယ်။ အလုပ်ရက် ၃ ရက်အတွင်း မပေးရင် တရားရုံးကို တင်ပြီး အိမ်ကနေ နှင်ထုတ်နိုင်ပါတယ် (eviction)။"`;
 
 export function languageRules(language: string): string {
@@ -199,7 +204,7 @@ const EX3_OUTPUT = {
   summary_simple:
     "Your water bill is late. You owe $96.40. Pay by 11/03/2026 at 5:00 PM or your water will be turned off. If you can't pay all of it, call and ask for a payment plan.",
   summary_translated:
-    "ဒါက ရေဖိုး နောက်ကျနေလို့ ရေဖြတ်မယ်လို့ သတိပေးတဲ့စာ (disconnection notice) ပါ။ ရေဖိုး $96.40 ပေးရန် ကျန်နေပါတယ်။ 11/03/2026 ညနေ 5:00 PM မတိုင်ခင် မပေးရင် ရေဖြတ်ပါလိမ့်မယ်။ တစ်ခါတည်း အကုန်မပေးနိုင်ရင် ဖုန်းဆက်ပြီး အရစ်ကျပေးလို့ရလား (payment arrangement) မေးလို့ရပါတယ်။",
+    "ဒါက ရေဖိုး နောက်ကျနေလို့ ရေဖြတ်မယ်လို့ သတိပေးတဲ့စာ (disconnection notice) ပါ။ ရေဖိုး $96.40 မပေးရသေးပါဘူး။ 11/03/2026 ညနေ 5:00 PM မတိုင်ခင် မပေးရင် ရေဖြတ်ပါလိမ့်မယ်။ တစ်ခါတည်း အကုန်မပေးနိုင်ရင် ဖုန်းဆက်ပြီး အရစ်ကျ ပေးလို့ရလား (payment arrangement) မေးကြည့်ပါနော်။",
   deadlines: [{ date: "11/03/2026 at 5:00 PM", what: "Payment must arrive to keep water on", source_quote: "payment must be received by 11/03/2026 at 5:00 PM" }],
   money: [{ amount: "$96.40", what: "Late water bill", source_quote: "Past due balance: $96.40" }],
   action_steps: [
@@ -333,6 +338,11 @@ export const DECODE_PATTERNS = [
   { name: "Template / Structured Output", where: "Exact JSON shape + JSON response mode, so the UI can render cards" },
   { name: "Fact Check List (grounding)", where: "Every date/amount needs a source_quote; unknowns go to 'not stated'" },
 ];
+
+export const POLISH_PATTERN = {
+  name: "Self-Refine (native editor)",
+  where: "A 2nd AI call acts as a native-speaker editor and rewrites only the translation to sound human, with facts locked to the English source",
+};
 
 export const REFINE_PATTERNS = [
   { name: "Iterative Refinement", where: "The previous AI output is fed back with a new instruction (simpler / formal / friendly / question)" },

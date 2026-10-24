@@ -9,7 +9,7 @@
 | 1 | 0:00–0:40 | **Problem** | "I came here from Myanmar and taught myself English. The hardest English wasn't in class — it was in the mailbox. Rent notices, medical bills, school forms. Miss one deadline and you can lose your home or your money. Translation apps give you words, not *what to do*." |
 | 2 | 0:40–0:55 | **Solution** | "LetterLens: paste or snap a letter, and it tells you what it means, how urgent it is, what to do next, and whether it's a scam — in your own language." |
 | 3 | 0:55–3:15 | **LIVE DEMO** | See script below |
-| 4 | 3:15–4:15 | **Prompt engineering** (open the 🧠 panel in the app) | Walk through the 6 patterns (below) |
+| 4 | 3:15–4:15 | **Prompt engineering** (open the 🧠 panel in the app) | Walk through the 7 patterns (below) |
 | 5 | 4:15–5:00 | **Impact & future** | Deadline reminders, share-with-helper link, voice, partner dashboard for legal-aid/ESL orgs. "Built for my community first, but it works for anyone who's ever stared at a letter and felt lost." |
 
 ### Live demo script
@@ -32,6 +32,7 @@
 4. **Template** — "It must return a strict JSON shape, which is why I can render these cards."
 5. **Fact Check List** — "Every deadline and amount needs a quote from the letter; anything missing goes into 'the letter doesn't say' instead of a guess."
 6. **Iterative Refinement** — "Simpler / formal / phone script / chat all feed the previous answer back with a new instruction."
+7. **Self-Refine (native editor)** — "Machine translation sounds robotic, so a second AI call acts as a native Burmese editor and rewrites only the translation to sound human, with the facts locked."
 
 ---
 

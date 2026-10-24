@@ -54,7 +54,7 @@ UI renders cards  ─▶  user refines:  "Explain simpler" · "Formal letter" ·
 
 ## 4. Prompt engineering techniques
 
-All prompts live in [`lib/prompts.ts`](lib/prompts.ts). The app uses **six** patterns from the course:
+All prompts live in [`lib/prompts.ts`](lib/prompts.ts). The app uses **seven** patterns from the course:
 
 ### 1. Persona
 The system prompt makes the model *"a patient, warm caseworker who has spent 15 years at a community legal-aid and immigrant resource center."* This sets tone (calm, plain words), priorities (protective about scams), and limits (not a lawyer — refer to 211 / legal aid for eviction or court). **Effect:** consistent, kind, non-jargon answers instead of a generic summarizer voice.
@@ -73,13 +73,16 @@ The system prompt gives an exact JSON template (urgency, deadlines with `source_
 ### 5. Fact Check List / grounding
 Every date and amount must include the exact phrase it came from (`source_quote`), shown under each fact in the UI. Anything the letter doesn't say goes into `not_stated` instead of being guessed, and the model is told to silently re-check every deadline and amount before answering. **Effect:** reduces hallucinated deadlines/amounts — the most dangerous error for this app — and lets the user verify each fact.
 
-### 6. Iterative Refinement
+### 6. Self-Refine / Reflection (native-speaker editor)
+Machine translations often sound robotic: English word order, stiff formal words, "you" in every sentence. So for any non-English language, a **second Gemini call** plays a *native-speaker editor for immigrant community newsletters*. It receives the English summary and steps as the locked source of facts, plus the first translation, and is told to (1) spot what sounds machine-translated, (2) rewrite it the way you'd say it to a friend, and (3) check every amount, date, phone number and name is unchanged. If the editor's output is incomplete, the app keeps the original. For Burmese, the rules name specific robot giveaways, e.g. repeating သင်, literary connectors like ကျေးဇူးပြု၍ / ရန် / ၍. **Effect:** translations read like a person wrote them, without risking the facts.
+
+### 7. Iterative Refinement
 After decoding, the user can refine: **Explain even simpler** (3rd-grade rewrite), **Make it a formal letter**, **Turn into a phone script**, or **ask follow-up questions**. Each refinement sends the previous AI output back with a new instruction (and recent chat history), keeping the same persona. **Effect:** the user steers the result until it actually works for them.
 
 ## 5. Tech stack
 
 - **Next.js 15 (App Router) + React 19 + TypeScript**, plain CSS (light/dark mode, mobile-first)
-- **Google Gemini API** (`gemini-2.5-flash` by default, set `GEMINI_MODEL` to change) via REST — no SDK
+- **Google Gemini API** (`gemini-3.8-flash` by default, set `GEMINI_MODEL` to change) via REST — no SDK
 - **OpenAI fallback:** if `GEMINI_API_KEY` is empty and `OPENAI_API_KEY` is set, the same prompts run on OpenAI (`OPENAI_MODEL`, default `gpt-5-mini`)
 - API key stays on the server (`/api/decode`, `/api/refine`); never sent to the browser
 - **Demo mode:** without a key the app still runs with canned results for two samples, so the UI can always be shown

@@ -12,7 +12,7 @@ const RENT: DecodeResult = {
   summary_simple:
     "Your landlord says you did not pay October rent. You owe $1,850. You must pay within 3 business days, or move out. If you do neither, they can take you to court to evict you.",
   summary_translated:
-    "သင့်အိမ်ရှင်က အောက်တိုဘာလ အိမ်လခ မပေးရသေးဘူးလို့ ပြောပါတယ်။ $1,850 ပေးရပါမယ်။ အလုပ်ရက် ၃ ရက်အတွင်း ပေးရမယ်၊ မဟုတ်ရင် အိမ်ကနေ ထွက်ရပါမယ်။ နှစ်ခုလုံး မလုပ်ရင် တရားရုံးကို တင်ပြီး နှင်ထုတ်နိုင်ပါတယ်။",
+    "အိမ်ရှင်က အောက်တိုဘာလ အိမ်လခ မပေးရသေးဘူးလို့ ပြောပါတယ်။ $1,850 ကို အလုပ်ရက် ၃ ရက်အတွင်း ပေးရပါမယ်။ မပေးနိုင်ရင် အိမ်ကနေ ထွက်ရပါမယ်။ နှစ်ခုလုံး မလုပ်ရင် တရားရုံးကို တင်ပြီး နှင်ထုတ်နိုင်ပါတယ်။",
   deadlines: [
     {
       date: "3 days after you got the notice (not counting weekends/holidays)",

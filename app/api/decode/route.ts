@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { generate, hasKey, MODEL, parseJson, type Content } from "@/lib/gemini";
 import { mockDecode } from "@/lib/mock";
+import { polishTranslation } from "@/lib/polish";
+import { friendlyError } from "@/lib/errors";
 import {
   buildDecodePrompt,
   DECODE_PATTERNS,
   DECODE_SYSTEM_PROMPT,
   FEW_SHOT_EXAMPLES,
+  POLISH_PATTERN,
   type ReadingLevel,
 } from "@/lib/prompts";
 import type { DecodeResult, PromptTrace } from "@/lib/types";
@@ -56,11 +59,17 @@ export async function POST(req: Request) {
     contents.push({ role: "user", parts });
 
     const raw = await generate({ system: DECODE_SYSTEM_PROMPT, contents, json: true, temperature: 0.2 });
-    const result = normalize(parseJson<Partial<DecodeResult>>(raw));
+    let result = normalize(parseJson<Partial<DecodeResult>>(raw));
+
+    // Pattern 7: native-speaker editor pass on the translated fields (Self-Refine)
+    const polished = await polishTranslation(result, language);
+    if (polished) result = { ...result, ...polished };
+    trace.patterns = [...trace.patterns, ...(polished ? [POLISH_PATTERN] : [])];
+
     return NextResponse.json({ result, trace });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Something went wrong";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error(err);
+    return NextResponse.json({ error: friendlyError(err) }, { status: 500 });
   }
 }
 

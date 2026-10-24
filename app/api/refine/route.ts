@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { generate, hasKey, parseJson } from "@/lib/gemini";
 import { buildRefinePrompt, SYSTEM_PERSONA } from "@/lib/prompts";
+import { polishTranslation } from "@/lib/polish";
+import { friendlyError } from "@/lib/errors";
 import type { ChatTurn, DecodeResult, RefineMode } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -36,10 +38,16 @@ export async function POST(req: Request) {
     });
 
     if (mode === "ask") return NextResponse.json({ answer: raw.trim() });
-    return NextResponse.json({ patch: parseJson<Partial<DecodeResult>>(raw) });
+    const patch = parseJson<Partial<DecodeResult>>(raw);
+    if (mode === "simpler" && patch.summary_translated) {
+      // run the native-speaker editor on the simpler translation too
+      const polished = await polishTranslation({ ...result, ...patch } as DecodeResult, language);
+      if (polished) Object.assign(patch, polished);
+    }
+    return NextResponse.json({ patch });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Something went wrong";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error(err);
+    return NextResponse.json({ error: friendlyError(err) }, { status: 500 });
   }
 }
 
